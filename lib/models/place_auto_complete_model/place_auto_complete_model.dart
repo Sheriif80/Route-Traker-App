@@ -39,7 +39,9 @@ class PlaceAutoCompleteModel {
       licence: json['licence'] as String?,
       lat: json['lat'] as String?,
       lon: json['lon'] as String?,
-      boundingbox: json['boundingbox'] as List<String>?,
+      boundingbox: (json['boundingbox'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
       placeAutoCompleteModelClass: json['class'] as String?,
       type: json['type'] as String?,
       displayName: json['display_name'] as String?,
