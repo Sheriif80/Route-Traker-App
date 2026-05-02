@@ -7,6 +7,7 @@ class HomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(centerTitle: true, title: const Text('Route Tracker')),
       body: const HomeViewBody(),
     );
