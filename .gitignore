@@ -46,3 +46,6 @@ app.*.map.json
 
 
 .env
+
+# Test json files
+lib/models/test.json
