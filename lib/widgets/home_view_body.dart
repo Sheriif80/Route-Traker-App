@@ -1,4 +1,7 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:route_tracker_app/models/place_auto_complete_model/place_auto_complete_model.dart';
 import 'package:route_tracker_app/services/google_maps_places_service.dart';
 import 'package:route_tracker_app/widgets/custom_google_maps.dart';
@@ -17,6 +20,8 @@ class _HomeViewBodyState extends State<HomeViewBody> {
   late GoogleMapsPlacesService googleMapsPlacesService;
 
   List<PlaceAutoCompleteModel> places = [];
+  late LatLng currentUserLocation;
+  late LatLng destinationLocation;
 
   @override
   void initState() {
@@ -60,7 +65,11 @@ class _HomeViewBodyState extends State<HomeViewBody> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        const CustomGoogleMaps(),
+        CustomGoogleMaps(
+          getCurrentUserLocation: (LatLng p1) {
+            currentUserLocation = p1;
+          },
+        ),
         Positioned(
           top: 20,
           left: 20,
@@ -74,18 +83,41 @@ class _HomeViewBodyState extends State<HomeViewBody> {
           child: places.isNotEmpty
               ? PlacesListView(
                   places: places,
-                  onPlaceSelected: (place) {
+                  onPlaceSelected: (place) async {
+                    destinationLocation = LatLng(
+                      double.parse(place.lat!),
+                      double.parse(place.lon!),
+                    );
+                    log(destinationLocation.toString());
                     setState(() {
                       places.clear();
                       _textController.clear();
                     });
-                    debugPrint(place.lat);
-                    debugPrint(place.lon);
+                    await getRouteData();
                   },
                 )
               : const SizedBox.shrink(),
         ),
       ],
+    );
+  }
+
+  Future<void> getRouteData() async {
+    String? geometry;
+    final result = await googleMapsPlacesService.getRoutes(
+      startLongitude: currentUserLocation.longitude.toString(),
+      startLatitude: currentUserLocation.latitude.toString(),
+      endLongitude: destinationLocation.longitude.toString(),
+      endLatitude: destinationLocation.latitude.toString(),
+    );
+    result.fold(
+      (failure) {
+        log(failure.message);
+      },
+      (routeData) {
+        geometry = routeData.routes!.first.geometry;
+        log(geometry!);
+      },
     );
   }
 }

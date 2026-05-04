@@ -5,7 +5,8 @@ import 'package:location/location.dart';
 import 'package:route_tracker_app/services/location_service.dart';
 
 class CustomGoogleMaps extends StatefulWidget {
-  const CustomGoogleMaps({super.key});
+  const CustomGoogleMaps({super.key, required this.getCurrentUserLocation});
+  final void Function(LatLng)? getCurrentUserLocation;
 
   @override
   State<CustomGoogleMaps> createState() => _CustomGoogleMapsState();
@@ -15,6 +16,7 @@ class _CustomGoogleMapsState extends State<CustomGoogleMaps> {
   late CameraPosition initialCameraPosition;
   GoogleMapController? googleMapController;
   late LocationService locationService;
+  late LatLng currentUserLocation;
 
   String? _mapStyle;
   Set<Marker> _markers = {};
@@ -33,6 +35,11 @@ class _CustomGoogleMapsState extends State<CustomGoogleMaps> {
   Future<void> getCurrentLocation() async {
     try {
       final LocationData locationData = await locationService.getLocationData();
+      final LatLng latLng = LatLng(
+        locationData.latitude!,
+        locationData.longitude!,
+      );
+      widget.getCurrentUserLocation!(latLng);
       final CameraPosition cameraPosition = CameraPosition(
         target: LatLng(locationData.latitude!, locationData.longitude!),
         zoom: 18,
