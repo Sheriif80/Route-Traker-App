@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:route_tracker_app/models/place_auto_complete_model/place_auto_complete_model.dart';
 import 'package:route_tracker_app/services/google_maps_places_service.dart';
@@ -22,6 +23,7 @@ class _HomeViewBodyState extends State<HomeViewBody> {
   List<PlaceAutoCompleteModel> places = [];
   late LatLng currentUserLocation;
   late LatLng destinationLocation;
+  String? routeGeometry;
 
   @override
   void initState() {
@@ -55,6 +57,32 @@ class _HomeViewBodyState extends State<HomeViewBody> {
     });
   }
 
+  Future<String> getRouteData() async {
+    String? geometry;
+    final result = await googleMapsPlacesService.getRoutes(
+      startLongitude: currentUserLocation.longitude.toString(),
+      startLatitude: currentUserLocation.latitude.toString(),
+      endLongitude: destinationLocation.longitude.toString(),
+      endLatitude: destinationLocation.latitude.toString(),
+    );
+    result.fold(
+      (failure) {
+        log(failure.message);
+      },
+      (routeData) {
+        geometry = routeData.routes!.first.geometry;
+      },
+    );
+    return geometry!;
+  }
+
+  List<LatLng> decodePolyline(String polyline) {
+    final List<PointLatLng> result = PolylinePoints.decodePolyline(polyline);
+    return result
+        .map((point) => LatLng(point.latitude, point.longitude))
+        .toList();
+  }
+
   @override
   void dispose() {
     _textController.dispose();
@@ -69,6 +97,9 @@ class _HomeViewBodyState extends State<HomeViewBody> {
           getCurrentUserLocation: (LatLng p1) {
             currentUserLocation = p1;
           },
+          polylinePoints: routeGeometry != null
+              ? decodePolyline(routeGeometry!)
+              : [],
         ),
         Positioned(
           top: 20,
@@ -93,31 +124,16 @@ class _HomeViewBodyState extends State<HomeViewBody> {
                       places.clear();
                       _textController.clear();
                     });
-                    await getRouteData();
+                    final String newGeometry = await getRouteData();
+
+                    setState(() {
+                      routeGeometry = newGeometry;
+                    });
                   },
                 )
               : const SizedBox.shrink(),
         ),
       ],
-    );
-  }
-
-  Future<void> getRouteData() async {
-    String? geometry;
-    final result = await googleMapsPlacesService.getRoutes(
-      startLongitude: currentUserLocation.longitude.toString(),
-      startLatitude: currentUserLocation.latitude.toString(),
-      endLongitude: destinationLocation.longitude.toString(),
-      endLatitude: destinationLocation.latitude.toString(),
-    );
-    result.fold(
-      (failure) {
-        log(failure.message);
-      },
-      (routeData) {
-        geometry = routeData.routes!.first.geometry;
-        log(geometry!);
-      },
     );
   }
 }
