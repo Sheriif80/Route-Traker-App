@@ -5,6 +5,7 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:route_tracker_app/models/place_auto_complete_model/place_auto_complete_model.dart';
 import 'package:route_tracker_app/services/google_maps_places_service.dart';
+import 'package:route_tracker_app/utils/debouncer.dart';
 import 'package:route_tracker_app/widgets/custom_google_maps.dart';
 import 'package:route_tracker_app/widgets/custom_text_field.dart';
 import 'package:route_tracker_app/widgets/places_list_view.dart';
@@ -25,6 +26,8 @@ class _HomeViewBodyState extends State<HomeViewBody> {
   late LatLng destinationLocation;
   String? routeGeometry;
 
+  final Debouncer debouncer = Debouncer(milliseconds: 200);
+
   @override
   void initState() {
     super.initState();
@@ -33,27 +36,29 @@ class _HomeViewBodyState extends State<HomeViewBody> {
     fetchAutoCompletePlaces();
   }
 
-  void fetchAutoCompletePlaces() async {
-    _textController.addListener(() async {
-      if (_textController.text.length >= 3) {
-        final result = await googleMapsPlacesService.getPlaceAutoComplete(
-          _textController.text,
-        );
-        result.fold(
-          (failure) {
-            debugPrint(failure.message);
-          },
-          (placesFetched) {
-            setState(() {
-              places = placesFetched;
-            });
-          },
-        );
-      } else {
-        setState(() {
-          places.clear();
-        });
-      }
+  void fetchAutoCompletePlaces() {
+    _textController.addListener(() {
+      debouncer.run(() async {
+        if (_textController.text.length >= 3) {
+          final result = await googleMapsPlacesService.getPlaceAutoComplete(
+            _textController.text,
+          );
+          result.fold(
+            (failure) {
+              debugPrint(failure.message);
+            },
+            (placesFetched) {
+              setState(() {
+                places = placesFetched;
+              });
+            },
+          );
+        } else {
+          setState(() {
+            places.clear();
+          });
+        }
+      });
     });
   }
 
@@ -86,6 +91,7 @@ class _HomeViewBodyState extends State<HomeViewBody> {
   @override
   void dispose() {
     _textController.dispose();
+    debouncer.cancel();
     super.dispose();
   }
 
